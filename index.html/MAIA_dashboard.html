@@ -1063,10 +1063,17 @@
       if (notesText) formData.append('notes', notesText);
 
       try {
-        const res = await fetch(WEBHOOK_VOCAL, { method: 'POST', body: formData });
+        const res = await fetch(WEBHOOK_VOCAL, { 
+          method: 'POST',
+          headers: { 'x-secret-token': 'mAI-xK9#pL2$vR7@nQ4&jW8!' },
+          body: formData 
+        });
         const text = await res.text();
         let transcript = text;
-        try { const j = JSON.parse(text); transcript = j.transcript || j.text || text; } catch(e) {}
+        try { 
+          const j = JSON.parse(text); 
+          transcript = j.transcript || j.transcription || j.text || text; 
+        } catch(e) {}
 
         if (target === 'main') {
           currentTranscript = transcript;
@@ -1101,7 +1108,7 @@
           body: JSON.stringify({ texte: text })
         });
         const data = await res.json();
-        const rapport = data.rapport || data.text || JSON.stringify(data);
+        const rapport = data.rapport || data.text || data.response || JSON.stringify(data);
         document.getElementById('rapportContent').textContent = rapport;
         document.getElementById('rapportResult').classList.add('visible');
         document.getElementById('vocalStep2').style.display = 'none';
