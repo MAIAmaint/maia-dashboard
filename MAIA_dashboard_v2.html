@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAIA — Dashboard Maintenance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a0e;
+      --bg2: #0d1117;
+      --bg3: #161c26;
+      --bg4: #1c2433;
+      --accent: #00d4ff;
+      --accent2: #7c4dff;
+      --green: #00e676;
+      --orange: #ff6d00;
+      --red: #ff1744;
+      --text: #e2e8f0;
+      --text2: #64748b;
+      --text3: #94a3b8;
+      --border: rgba(255,255,255,0.05);
+      --border2: rgba(255,255,255,0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 24px 0;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      z-index: 10;
+    }
+
+    .sidebar-logo {
+      padding: 0 24px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px; font-weight: 800;
+      letter-spacing: -0.02em; color: var(--text);
+    }
+    .logo-text span { color: var(--accent); }
+
+    .logo-sub {
+      font-size: 11px; color: var(--text2);
+      margin-top: 2px; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav { padding: 16px 12px; flex: 1; }
+
+    .nav-section-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--text2); text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 12px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      font-size: 14px; font-weight: 500;
+      color: var(--text2); cursor: pointer;
+      transition: all 0.15s; margin-bottom: 2px;
+      border: none; background: none; width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active { background: rgba(0,212,255,0.08); color: var(--accent); }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text2);
+    }
+
+    .status-dot {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--green);
+      margin-right: 6px; animation: blink 2s infinite;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ===== MAIN ===== */
+    .main {
+      margin-left: 240px; flex: 1;
+      display: flex; flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      justify-content: space-between;
+      background: var(--bg2);
+      position: sticky; top: 0; z-index: 5;
+    }
+
+    .topbar-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 700;
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+    .refresh-btn {
+      padding: 8px 16px; background: var(--bg3);
+      border: 1px solid var(--border2); border-radius: 6px;
+      font-size: 13px; color: var(--text3);
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .last-update { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+    .content { padding: 32px; flex: 1; }
+
+    /* ===== PAGES ===== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== STATS ===== */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border2); }
+    .stat-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+    }
+    .stat-card.total::after { background: linear-gradient(90deg, var(--accent), transparent); }
+    .stat-card.termine::after { background: linear-gradient(90deg, var(--green), transparent); }
+    .stat-card.suivre::after { background: linear-gradient(90deg, var(--orange), transparent); }
+    .stat-card.attente::after { background: linear-gradient(90deg, var(--accent2), transparent); }
+
+    .stat-label {
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 42px; font-weight: 800; line-height: 1; color: var(--text);
+    }
+    .stat-value.loading { font-size: 24px; color: var(--text2); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .stat-card.total .stat-value { color: var(--accent); }
+    .stat-card.termine .stat-value { color: var(--green); }
+    .stat-card.suivre .stat-value { color: var(--orange); }
+    .stat-card.attente .stat-value { color: var(--accent2); }
+
+    /* ===== FILTERS ===== */
+    .filters-bar {
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+
+    .filter-input {
+      padding: 10px 16px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; color: var(--text); outline: none;
+      transition: border-color 0.2s; font-family: 'DM Sans', sans-serif;
+      min-width: 200px;
+    }
+    .filter-input::placeholder { color: var(--text2); }
+    .filter-input:focus { border-color: rgba(0,212,255,0.4); }
+
+    .filter-select {
+      padding: 10px 16px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; color: var(--text); outline: none;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s;
+    }
+    .filter-select:focus { border-color: rgba(0,212,255,0.4); }
+
+    .filter-count { margin-left: auto; font-size: 13px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+    /* ===== TABLE ===== */
+    .table-container {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+
+    .table-header {
+      display: grid; grid-template-columns: 110px 1fr 140px 120px 60px;
+      gap: 16px; padding: 12px 20px;
+      background: var(--bg3); border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .table-row {
+      display: grid; grid-template-columns: 110px 1fr 140px 120px 60px;
+      gap: 16px; padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      align-items: center; cursor: pointer; transition: background 0.15s;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: var(--bg3); }
+
+    .cell-date { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+    .cell-equip { font-size: 14px; font-weight: 500; color: var(--text); }
+    .cell-sub { font-size: 12px; color: var(--text3); }
+    .cell-desc { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell-tech { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 4px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-green { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+    .badge-orange { background: rgba(255,109,0,0.12); color: var(--orange); border: 1px solid rgba(255,109,0,0.2); }
+    .badge-purple { background: rgba(124,77,255,0.12); color: var(--accent2); border: 1px solid rgba(124,77,255,0.2); }
+    .badge-gray { background: rgba(100,116,139,0.12); color: var(--text2); border: 1px solid rgba(100,116,139,0.2); }
+
+    /* ===== MODAL RAPPORT ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: 16px; width: 700px; max-width: 95vw;
+      max-height: 85vh; overflow-y: auto; padding: 32px;
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+    .modal-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 24px;
+    }
+    .modal-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); flex: 1; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 6px;
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text2); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0; margin-left: 16px;
+    }
+    .modal-close:hover { border-color: var(--border2); color: var(--text); }
+
+    .modal-meta {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 24px;
+    }
+    .meta-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .meta-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .meta-value { font-size: 14px; font-weight: 500; color: var(--text); }
+
+    .modal-section { margin-bottom: 20px; }
+    .modal-section-title {
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 10px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-section-content { font-size: 14px; color: var(--text3); line-height: 1.7; white-space: pre-wrap; }
+    .rapport-box {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px;
+      font-size: 13px; color: var(--text3);
+      line-height: 1.8; white-space: pre-wrap;
+    }
+
+    /* ===== SAISIE VOCALE ===== */
+    .vocal-container {
+      max-width: 680px; margin: 0 auto;
+    }
+
+    .vocal-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px;
+      text-align: center; margin-bottom: 24px;
+    }
+
+    .vocal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .vocal-sub { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+
+    .record-btn {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--accent); border: none;
+      cursor: pointer; font-size: 32px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; transition: all 0.2s;
+      box-shadow: 0 0 0 0 rgba(0,212,255,0.4);
+    }
+    .record-btn:hover { transform: scale(1.05); }
+    .record-btn.recording {
+      background: var(--red);
+      animation: recordPulse 1.5s infinite;
+    }
+    @keyframes recordPulse {
+      0% { box-shadow: 0 0 0 0 rgba(255,23,68,0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(255,23,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,23,68,0); }
+    }
+
+    .record-status { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+
+    .vocal-steps {
+      display: flex; gap: 12px; justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .step-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--bg3); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--text2);
+      transition: all 0.3s;
+    }
+    .step-dot.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .step-dot.done { background: var(--green); border-color: var(--green); color: var(--bg); }
+    .step-line { width: 40px; height: 1px; background: var(--border); align-self: center; }
+
+    .transcript-box {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      font-size: 14px; color: var(--text);
+      line-height: 1.7; min-height: 80px;
+      text-align: left; margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .vocal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn-accent {
+      padding: 12px 28px; background: var(--accent);
+      color: var(--bg); border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+    }
+    .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,212,255,0.3); }
+    .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-outline {
+      padding: 12px 28px; background: transparent;
+      color: var(--text3); border: 1px solid var(--border2);
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--text2); color: var(--text); }
+
+    .rapport-result {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; margin-top: 24px;
+      display: none;
+    }
+
+    .rapport-result.visible { display: block; }
+
+    .rapport-result-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 16px; color: var(--accent);
+    }
+
+    /* ===== NOTES TERRAIN ===== */
+    .notes-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 20px; margin-bottom: 24px;
+    }
+
+    .note-input-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+    }
+
+    .note-card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .note-card-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+    .note-textarea {
+      width: 100%; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px; font-size: 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; resize: none;
+      height: 140px; outline: none; transition: border-color 0.2s;
+      line-height: 1.7;
+    }
+    .note-textarea::placeholder { color: var(--text2); }
+    .note-textarea:focus { border-color: rgba(0,212,255,0.4); }
+
+    .note-record-btn {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--bg3); border: 1px solid var(--border);
+      cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; margin-top: 12px;
+    }
+    .note-record-btn:hover { border-color: var(--accent); }
+    .note-record-btn.recording { background: var(--red); border-color: var(--red); animation: recordPulse 1.5s infinite; }
+
+    .notes-list {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+    }
+
+    .notes-list-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 20px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+
+    .note-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+      margin-bottom: 10px; position: relative;
+    }
+
+    .note-item-type {
+      font-size: 10px; font-weight: 600;
+      color: var(--text2); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .note-item-content { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+    .note-item-time { font-size: 11px; color: var(--text2); margin-top: 6px; font-family: 'DM Mono', monospace; }
+
+    .note-delete {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: none; color: var(--text2);
+      cursor: pointer; font-size: 14px; transition: color 0.2s;
+    }
+    .note-delete:hover { color: var(--red); }
+
+    .notes-empty { text-align: center; padding: 32px; color: var(--text2); font-size: 14px; }
+
+    .notes-use-btn {
+      margin-top: 16px; width: 100%;
+      padding: 12px; background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2); border-radius: 8px;
+      color: var(--accent); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .notes-use-btn:hover { background: rgba(0,212,255,0.15); }
+
+    /* ===== TECHNICIENS ===== */
+    .tech-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 24px;
+    }
+
+    .tech-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 28px;
+    }
+
+    .tech-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      position: relative; transition: border-color 0.2s;
+    }
+    .tech-card:hover { border-color: var(--border2); }
+
+    .tech-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+      color: var(--accent); margin-bottom: 14px;
+    }
+
+    .tech-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .tech-trigram { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+
+    .tech-stats { display: flex; gap: 16px; }
+    .tech-stat { text-align: center; }
+    .tech-stat-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); }
+    .tech-stat-lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .tech-add-card {
+      background: var(--bg2); border: 1px dashed var(--border2);
+      border-radius: 12px; padding: 24px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; min-height: 160px;
+      color: var(--text2); gap: 8px;
+    }
+    .tech-add-card:hover { border-color: var(--accent); color: var(--accent); }
+    .tech-add-icon { font-size: 28px; }
+    .tech-add-text { font-size: 13px; font-weight: 500; }
+
+    /* Modal ajout technicien */
+    .add-tech-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .add-tech-modal.open { display: flex; }
+
+    .add-tech-box {
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: 16px; padding: 32px; width: 420px; max-width: 95vw;
+      animation: modalIn 0.2s ease;
+    }
+
+    .add-tech-title {
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .form-field { margin-bottom: 16px; }
+    .form-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: block; }
+    .form-input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+      font-size: 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: rgba(0,212,255,0.4); }
+    .form-input::placeholder { color: var(--text2); }
+
+    .form-actions { display: flex; gap: 12px; margin-top: 24px; }
+
+    /* ===== STATES ===== */
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--text2); }
+    .empty-icon { font-size: 40px; margin-bottom: 16px; }
+    .empty-text { font-size: 15px; }
+
+    .loading-state { text-align: center; padding: 60px 24px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 2px solid var(--border2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--text2); }
+    .error-state { text-align: center; padding: 40px 24px; color: var(--red); font-size: 14px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .table-header, .table-row { grid-template-columns: 90px 1fr auto; }
+      .table-header .h-desc, .table-row .cell-desc,
+      .table-header .h-tech, .table-row .cell-tech { display: none; }
+      .content { padding: 16px; }
+      .notes-grid { grid-template-columns: 1fr; }
+      .tech-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">MA<span>IA</span></div>
+      <div class="logo-sub">Maintenance Assistée par IA</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Principal</div>
+      <button class="nav-item active" onclick="showPage('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('vocal')">
+        <span class="icon">🎤</span> Saisie vocale
+      </button>
+      <button class="nav-item" onclick="showPage('notes')">
+        <span class="icon">📝</span> Notes terrain
+      </button>
+      <div class="nav-section-label" style="margin-top:8px;">Gestion</div>
+      <button class="nav-item" onclick="showPage('techniciens')">
+        <span class="icon">👷</span> Techniciens
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span> Connecté à Google Sheets
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Tableau de bord</div>
+      <div class="topbar-right">
+        <span class="last-update" id="lastUpdate">—</span>
+        <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻ Actualiser</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- PAGE DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-label">Total interventions</div>
+            <div class="stat-value loading" id="statTotal">…</div>
+          </div>
+          <div class="stat-card termine">
+            <div class="stat-label">Terminées</div>
+            <div class="stat-value loading" id="statTermine">…</div>
+          </div>
+          <div class="stat-card suivre">
+            <div class="stat-label">À suivre</div>
+            <div class="stat-value loading" id="statSuivre">…</div>
+          </div>
+          <div class="stat-card attente">
+            <div class="stat-label">En attente</div>
+            <div class="stat-value loading" id="statAttente">…</div>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <input type="text" class="filter-input" id="searchInput" placeholder="🔍 Rechercher équipement, panne..." oninput="applyFilters()">
+          <select class="filter-select" id="filterStatut" onchange="applyFilters()">
+            <option value="">Tous les statuts</option>
+            <option value="Terminé">Terminé</option>
+            <option value="A suivre">À suivre</option>
+            <option value="En attente">En attente</option>
+          </select>
+          <select class="filter-select" id="filterTech" onchange="applyFilters()">
+            <option value="">Tous les techniciens</option>
+          </select>
+          <span class="filter-count" id="filterCount"></span>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <div>Date</div>
+            <div>Équipement</div>
+            <div class="h-desc">Description panne</div>
+            <div class="h-tech">Technicien</div>
+            <div>Statut</div>
+          </div>
+          <div class="table-body" id="tableBody">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <div class="loading-text">Chargement des données...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE SAISIE VOCALE -->
+      <div class="page" id="page-vocal">
+        <div class="vocal-container">
+
+          <!-- Notes actives -->
+          <div id="vocalNotesPreview" style="display:none; background:var(--bg2); border:1px solid rgba(0,212,255,0.2); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+            <div style="font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">📝 Notes terrain chargées</div>
+            <div id="vocalNotesContent" style="font-size:13px; color:var(--text3); line-height:1.6;"></div>
+          </div>
+
+          <div class="vocal-card">
+            <div class="vocal-steps">
+              <div class="step-dot active" id="step1">1</div>
+              <div class="step-line"></div>
+              <div class="step-dot" id="step2">2</div>
+              <div class="step-line"></div>
+              <div class="step-dot" id="step3">3</div>
+            </div>
+
+            <div id="vocalStep1">
+              <div class="vocal-title">🎤 Décrivez votre intervention</div>
+              <div class="vocal-sub">Parlez naturellement — MAIA structure automatiquement votre rapport</div>
+              <button class="record-btn" id="recordBtn" onclick="toggleRecord()">🎤</button>
+              <div class="record-status" id="recordStatus">Appuyez pour commencer l'enregistrement</div>
+              <div class="transcript-box" id="transcriptBox" style="display:none;"></div>
+              <div class="vocal-actions" id="step1Actions" style="display:none;">
+                <button class="btn-accent" onclick="goToStep2()">Valider la transcription →</button>
+                <button class="btn-outline" onclick="resetVocal()">Recommencer</button>
+              </div>
+            </div>
+
+            <div id="vocalStep2" style="display:none;">
+              <div class="vocal-title">✏️ Vérifiez la transcription</div>
+              <div class="vocal-sub">Corrigez si nécessaire avant de générer le rapport</div>
+              <textarea class="note-textarea" id="transcriptEdit" style="height:160px; margin-bottom:16px;"></textarea>
+              <div class="vocal-actions">
+                <button class="btn-accent" id="generateBtn" onclick="generateReport()">Générer le rapport IA →</button>
+                <button class="btn-outline" onclick="goToStep1()">← Retour</button>
+              </div>
+            </div>
+
+            <div id="vocalStep3" style="display:none;">
+              <div class="vocal-title">✅ Rapport généré</div>
+              <div class="vocal-sub">Votre rapport a été structuré et enregistré automatiquement</div>
+            </div>
+          </div>
+
+          <div class="rapport-result" id="rapportResult">
+            <div class="rapport-result-title">📋 Rapport structuré</div>
+            <div class="rapport-box" id="rapportContent"></div>
+            <div style="display:flex; gap:12px; margin-top:16px;">
+              <button class="btn-accent" onclick="submitReport()">Enregistrer dans le dashboard →</button>
+              <button class="btn-outline" onclick="resetVocal()">Nouvelle intervention</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE NOTES TERRAIN -->
+      <div class="page" id="page-notes">
+        <div style="margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:6px;">Carnet de bord</div>
+          <div style="font-size:14px; color:var(--text2);">Prenez des notes pendant l'intervention — elles seront disponibles au moment de votre rapport vocal.</div>
+        </div>
+
+        <div class="notes-grid">
+          <div class="note-input-card">
+            <div class="note-card-title">📝 Note écrite</div>
+            <div class="note-card-sub">Références, ordre de démontage, spécificités...</div>
+            <textarea class="note-textarea" id="noteText" placeholder="Ex: Référence joint 45x60 — vis M8 côté gauche fragile — ordre démontage: carter → arbre → roulement..."></textarea>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+              <button class="btn-accent" style="flex:1; padding:10px;" onclick="addTextNote()">+ Ajouter la note</button>
+            </div>
+          </div>
+
+          <div class="note-input-card">
+            <div class="note-card-title">🎙️ Note vocale rapide</div>
+            <div class="note-card-sub">Dictez une note courte (références, observations...)</div>
+            <div style="text-align:center; padding:20px 0;">
+              <button class="note-record-btn" id="noteRecordBtn" onclick="toggleNoteRecord()" style="margin:0 auto 12px;">🎙️</button>
+              <div id="noteRecordStatus" style="font-size:13px; color:var(--text2);">Appuyez pour enregistrer</div>
+              <div class="transcript-box" id="noteTranscript" style="display:none; margin-top:12px; text-align:left;"></div>
+              <button class="btn-outline" id="addNoteVocalBtn" style="display:none; margin-top:12px; width:100%;" onclick="addVocalNote()">+ Ajouter cette note</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes-list">
+          <div class="notes-list-title">
+            <span>Notes enregistrées <span id="notesCount" style="font-size:13px; color:var(--text2); font-weight:400;"></span></span>
+            <button class="btn-outline" style="font-size:12px; padding:6px 14px;" onclick="clearAllNotes()">Tout effacer</button>
+          </div>
+          <div id="notesList">
+            <div class="notes-empty">📋 Aucune note pour l'instant.<br>Prenez des notes pendant votre intervention.</div>
+          </div>
+          <button class="notes-use-btn" id="useNotesBtn" style="display:none;" onclick="useNotesInVocal()">
+            🎤 Utiliser ces notes pour mon rapport vocal →
+          </button>
+        </div>
+      </div>
+
+      <!-- PAGE TECHNICIENS -->
+      <div class="page" id="page-techniciens">
+        <div class="tech-header">
+          <div>
+            <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:6px;">Équipe</div>
+            <div style="font-size:14px; color:var(--text2);">Gérez les techniciens et suivez leurs interventions.</div>
+          </div>
+        </div>
+        <div class="tech-grid" id="techGrid">
+          <div class="loading-state" style="grid-column:1/-1;">
+            <div class="spinner"></div>
+            <div class="loading-text">Chargement des techniciens...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL RAPPORT DÉTAIL -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">—</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-meta" id="modalMeta"></div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL AJOUT TECHNICIEN -->
+  <div class="add-tech-modal" id="addTechModal">
+    <div class="add-tech-box">
+      <div class="add-tech-title">👷 Ajouter un technicien</div>
+      <div class="form-field">
+        <label class="form-label">Prénom Nom *</label>
+        <input type="text" class="form-input" id="techNom" placeholder="Jean Dupont">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Trigramme *</label>
+        <input type="text" class="form-input" id="techTrigram" placeholder="JDU" maxlength="3" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Mot de passe</label>
+        <input type="password" class="form-input" id="techMdp" placeholder="••••••">
+      </div>
+      <div class="form-actions">
+        <button class="btn-accent" onclick="saveTech()">Ajouter</button>
+        <button class="btn-outline" onclick="closeAddTech()">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    const API_KEY = 'AIzaSyBfXo3RuLAhm3wNXJEmLkWFyzgSrRFYpQQ';
+    const SHEET_ID = '12dAywf9-VVPBSqOIGJCbK1p9fdR7XuulArtWnY8GRhQ';
+    const WEBHOOK_VOCAL = 'https://maia.app.n8n.cloud/webhook/Rapport maintenance';
+    const WEBHOOK_ECRIT = 'https://maia.app.n8n.cloud/webhook/Rapport-texte';
+
+    const COL = {
+      tech: 0, date: 1, equip: 2, ref: 3, duree: 4,
+      action_realisee: 5, statut: 6, type: 7, desc: 8,
+      cause: 9, actions: 10, rapport: 11
+    };
+
+    let allData = [];
+    let filteredData = [];
+    let notes = JSON.parse(localStorage.getItem('maia_notes') || '[]');
+    let currentTranscript = '';
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let isNoteRecording = false;
+    let noteMediaRecorder = null;
+    let noteAudioChunks = [];
+
+    // ===== NAVIGATION =====
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      event.currentTarget.classList.add('active');
+
+      const titles = {
+        dashboard: 'Tableau de bord',
+        vocal: 'Saisie vocale',
+        notes: 'Notes terrain',
+        techniciens: 'Équipe'
+      };
+      document.getElementById('pageTitle').textContent = titles[page];
+
+      const showRefresh = page === 'dashboard';
+      document.getElementById('refreshBtn').style.display = showRefresh ? 'block' : 'none';
+      document.getElementById('lastUpdate').style.display = showRefresh ? 'block' : 'none';
+
+      if (page === 'techniciens') loadTechniciens();
+      if (page === 'notes') renderNotes();
+      if (page === 'vocal') loadNotesInVocal();
+    }
+
+    // ===== DASHBOARD =====
+    async function loadData() {
+      document.getElementById('tableBody').innerHTML = `
+        <div class="loading-state"><div class="spinner"></div><div class="loading-text">Chargement...</div></div>`;
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('Feuille 1')}?key=${API_KEY}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.error) { showError('Erreur API : ' + data.error.message); return; }
+
+        const rows = (data.values || []).filter(r => r[COL.equip] && r[COL.equip] !== 'Equipement');
+        allData = rows;
+        updateStats(rows);
+        updateTechFilter(rows);
+        applyFilters();
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('fr-FR');
+      } catch (err) {
+        showError('Impossible de charger les données.');
+      }
+    }
+
+    function updateStats(rows) {
+      ['statTotal','statTermine','statSuivre','statAttente'].forEach(id => document.getElementById(id).classList.remove('loading'));
+      document.getElementById('statTotal').textContent = rows.length;
+      document.getElementById('statTermine').textContent = rows.filter(r => r[COL.statut] === 'Terminé').length;
+      document.getElementById('statSuivre').textContent = rows.filter(r => r[COL.statut] === 'A suivre').length;
+      document.getElementById('statAttente').textContent = rows.filter(r => r[COL.statut] === 'En attente').length;
+    }
+
+    function updateTechFilter(rows) {
+      const techs = [...new Set(rows.map(r => r[COL.tech]).filter(Boolean))].sort();
+      const sel = document.getElementById('filterTech');
+      sel.innerHTML = '<option value="">Tous les techniciens</option>';
+      techs.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const statut = document.getElementById('filterStatut').value;
+      const tech = document.getElementById('filterTech').value;
+
+      filteredData = allData.filter(row => {
+        const matchSearch = !search ||
+          (row[COL.equip]||'').toLowerCase().includes(search) ||
+          (row[COL.desc]||'').toLowerCase().includes(search) ||
+          (row[COL.tech]||'').toLowerCase().includes(search);
+        return matchSearch && (!statut || row[COL.statut] === statut) && (!tech || row[COL.tech] === tech);
+      });
+
+      renderTable(filteredData);
+      document.getElementById('filterCount').textContent = `${filteredData.length} résultat${filteredData.length > 1 ? 's' : ''}`;
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        document.getElementById('tableBody').innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Aucune intervention trouvée</div></div>`;
+        return;
+      }
+      const sorted = [...rows].sort((a,b) => parseDate(b[COL.date]) - parseDate(a[COL.date]));
+      document.getElementById('tableBody').innerHTML = sorted.map(row => `
+        <div class="table-row" onclick="openModal(${allData.indexOf(row)})">
+          <div class="cell-date">${row[COL.date]||'—'}</div>
+          <div>
+            <div class="cell-equip">${row[COL.equip]||'—'}</div>
+            <div class="cell-sub">${row[COL.type]||''}</div>
+          </div>
+          <div class="cell-desc">${row[COL.desc]||'—'}</div>
+          <div class="cell-tech">${row[COL.tech]||'—'}</div>
+          <div>${getBadge(row[COL.statut])}</div>
+        </div>`).join('');
+    }
+
+    function getBadge(s) {
+      const map = { 'Terminé':'badge-green','A suivre':'badge-orange','En attente':'badge-purple' };
+      return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+    }
+
+    function parseDate(str) {
+      if (!str) return 0;
+      const p = str.split('/');
+      return p.length === 3 ? new Date(p[2],p[1]-1,p[0]) : new Date(str);
+    }
+
+    function openModal(idx) {
+      const row = allData[idx]; if (!row) return;
+      document.getElementById('modalTitle').textContent = row[COL.equip]||'Intervention';
+      document.getElementById('modalMeta').innerHTML = `
+        <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">${row[COL.date]||'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Technicien</div><div class="meta-value">${row[COL.tech]||'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Statut</div><div class="meta-value">${getBadge(row[COL.statut])}</div></div>
+        <div class="meta-item"><div class="meta-label">Type</div><div class="meta-value">${row[COL.type]||'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Durée</div><div class="meta-value">${row[COL.duree]?row[COL.duree]+' min':'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Réf. pièce</div><div class="meta-value">${row[COL.ref]||'—'}</div></div>`;
+      document.getElementById('modalBody').innerHTML = `
+        ${row[COL.desc]?`<div class="modal-section"><div class="modal-section-title">Description panne</div><div class="modal-section-content">${row[COL.desc]}</div></div>`:''}
+        ${row[COL.cause]?`<div class="modal-section"><div class="modal-section-title">Cause identifiée</div><div class="modal-section-content">${row[COL.cause]}</div></div>`:''}
+        ${row[COL.actions]?`<div class="modal-section"><div class="modal-section-title">Actions réalisées</div><div class="modal-section-content">${row[COL.actions]}</div></div>`:''}
+        ${row[COL.rapport]?`<div class="modal-section"><div class="modal-section-title">Rapport complet</div><div class="rapport-box">${row[COL.rapport]}</div></div>`:''}`;
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal(e) {
+      if (!e || e.target === document.getElementById('modalOverlay'))
+        document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    function showError(msg) {
+      document.getElementById('tableBody').innerHTML = `<div class="error-state">⚠️ ${msg}</div>`;
+    }
+
+    // ===== SAISIE VOCALE =====
+    function goToStep1() {
+      document.getElementById('vocalStep1').style.display = 'block';
+      document.getElementById('vocalStep2').style.display = 'none';
+      setStep(1);
+    }
+
+    function goToStep2() {
+      document.getElementById('transcriptEdit').value = currentTranscript;
+      document.getElementById('vocalStep1').style.display = 'none';
+      document.getElementById('vocalStep2').style.display = 'block';
+      setStep(2);
+    }
+
+    function setStep(n) {
+      for (let i=1; i<=3; i++) {
+        const el = document.getElementById('step'+i);
+        el.classList.remove('active','done');
+        if (i < n) el.classList.add('done');
+        else if (i === n) el.classList.add('active');
+      }
+    }
+
+    async function toggleRecord() {
+      if (isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById('recordBtn').classList.remove('recording');
+        document.getElementById('recordBtn').textContent = '🎤';
+        document.getElementById('recordStatus').textContent = 'Transcription en cours...';
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => transcribeAudio(audioChunks, 'main');
+          mediaRecorder.start();
+          isRecording = true;
+          document.getElementById('recordBtn').classList.add('recording');
+          document.getElementById('recordBtn').textContent = '⏹';
+          document.getElementById('recordStatus').textContent = '🔴 Enregistrement en cours... (appuyez pour arrêter)';
+          document.getElementById('transcriptBox').style.display = 'none';
+          document.getElementById('step1Actions').style.display = 'none';
+        } catch(e) {
+          document.getElementById('recordStatus').textContent = '⚠️ Microphone non autorisé';
+        }
+      }
+    }
+
+    async function transcribeAudio(chunks, target) {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', blob, 'audio.webm');
+
+      // Injecter les notes terrain si présentes
+      const notesText = notes.map(n => n.content).join('\n');
+      if (notesText) formData.append('notes', notesText);
+
+      try {
+        const res = await fetch(WEBHOOK_VOCAL, { method: 'POST', body: formData });
+        const text = await res.text();
+        let transcript = text;
+        try { const j = JSON.parse(text); transcript = j.transcript || j.text || text; } catch(e) {}
+
+        if (target === 'main') {
+          currentTranscript = transcript;
+          document.getElementById('transcriptBox').textContent = transcript;
+          document.getElementById('transcriptBox').style.display = 'block';
+          document.getElementById('step1Actions').style.display = 'flex';
+          document.getElementById('recordStatus').textContent = 'Transcription terminée ✓';
+        } else {
+          document.getElementById('noteTranscript').textContent = transcript;
+          document.getElementById('noteTranscript').style.display = 'block';
+          document.getElementById('addNoteVocalBtn').style.display = 'block';
+          document.getElementById('noteRecordStatus').textContent = 'Note enregistrée ✓';
+          window._lastNoteTranscript = transcript;
+        }
+      } catch(e) {
+        if (target === 'main') {
+          document.getElementById('recordStatus').textContent = '⚠️ Erreur de transcription';
+        }
+      }
+    }
+
+    async function generateReport() {
+      const text = document.getElementById('transcriptEdit').value;
+      if (!text.trim()) return;
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true; btn.textContent = 'Génération en cours...';
+
+      try {
+        const res = await fetch(WEBHOOK_ECRIT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texte: text })
+        });
+        const data = await res.json();
+        const rapport = data.rapport || data.text || JSON.stringify(data);
+        document.getElementById('rapportContent').textContent = rapport;
+        document.getElementById('rapportResult').classList.add('visible');
+        document.getElementById('vocalStep2').style.display = 'none';
+        document.getElementById('vocalStep3').style.display = 'block';
+        setStep(3);
+      } catch(e) {
+        btn.disabled = false; btn.textContent = 'Générer le rapport IA →';
+      }
+    }
+
+    function submitReport() {
+      loadData();
+      resetVocal();
+      showPage('dashboard');
+      document.querySelectorAll('.nav-item')[0].classList.add('active');
+      document.querySelectorAll('.nav-item').forEach((n,i) => { if(i>0) n.classList.remove('active'); });
+    }
+
+    function resetVocal() {
+      currentTranscript = '';
+      isRecording = false;
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('recordBtn').textContent = '🎤';
+      document.getElementById('recordStatus').textContent = 'Appuyez pour commencer l\'enregistrement';
+      document.getElementById('transcriptBox').style.display = 'none';
+      document.getElementById('step1Actions').style.display = 'none';
+      document.getElementById('vocalStep1').style.display = 'block';
+      document.getElementById('vocalStep2').style.display = 'none';
+      document.getElementById('vocalStep3').style.display = 'none';
+      document.getElementById('rapportResult').classList.remove('visible');
+      setStep(1);
+    }
+
+    function loadNotesInVocal() {
+      const preview = document.getElementById('vocalNotesPreview');
+      const content = document.getElementById('vocalNotesContent');
+      if (notes.length) {
+        preview.style.display = 'block';
+        content.textContent = notes.map(n => '• ' + n.content).join('\n');
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    // ===== NOTES TERRAIN =====
+    function addTextNote() {
+      const text = document.getElementById('noteText').value.trim();
+      if (!text) return;
+      notes.push({ id: Date.now(), type: 'text', content: text, time: new Date().toLocaleTimeString('fr-FR') });
+      saveNotes();
+      document.getElementById('noteText').value = '';
+      renderNotes();
+    }
+
+    async function toggleNoteRecord() {
+      if (isNoteRecording) {
+        noteMediaRecorder.stop();
+        isNoteRecording = false;
+        document.getElementById('noteRecordBtn').classList.remove('recording');
+        document.getElementById('noteRecordBtn').textContent = '🎙️';
+        document.getElementById('noteRecordStatus').textContent = 'Transcription en cours...';
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          noteAudioChunks = [];
+          noteMediaRecorder = new MediaRecorder(stream);
+          noteMediaRecorder.ondataavailable = e => noteAudioChunks.push(e.data);
+          noteMediaRecorder.onstop = () => transcribeAudio(noteAudioChunks, 'note');
+          noteMediaRecorder.start();
+          isNoteRecording = true;
+          document.getElementById('noteRecordBtn').classList.add('recording');
+          document.getElementById('noteRecordBtn').textContent = '⏹';
+          document.getElementById('noteRecordStatus').textContent = '🔴 Enregistrement... (appuyez pour arrêter)';
+          document.getElementById('noteTranscript').style.display = 'none';
+          document.getElementById('addNoteVocalBtn').style.display = 'none';
+        } catch(e) {
+          document.getElementById('noteRecordStatus').textContent = '⚠️ Microphone non autorisé';
+        }
+      }
+    }
+
+    function addVocalNote() {
+      const text = window._lastNoteTranscript;
+      if (!text) return;
+      notes.push({ id: Date.now(), type: 'vocal', content: text, time: new Date().toLocaleTimeString('fr-FR') });
+      saveNotes();
+      document.getElementById('noteTranscript').style.display = 'none';
+      document.getElementById('addNoteVocalBtn').style.display = 'none';
+      document.getElementById('noteRecordStatus').textContent = 'Appuyez pour enregistrer';
+      window._lastNoteTranscript = '';
+      renderNotes();
+    }
+
+    function deleteNote(id) {
+      notes = notes.filter(n => n.id !== id);
+      saveNotes();
+      renderNotes();
+    }
+
+    function clearAllNotes() {
+      if (confirm('Effacer toutes les notes ?')) {
+        notes = [];
+        saveNotes();
+        renderNotes();
+      }
+    }
+
+    function saveNotes() {
+      localStorage.setItem('maia_notes', JSON.stringify(notes));
+    }
+
+    function renderNotes() {
+      const list = document.getElementById('notesList');
+      const count = document.getElementById('notesCount');
+      const useBtn = document.getElementById('useNotesBtn');
+
+      count.textContent = notes.length ? `(${notes.length})` : '';
+      useBtn.style.display = notes.length ? 'block' : 'none';
+
+      if (!notes.length) {
+        list.innerHTML = '<div class="notes-empty">📋 Aucune note pour l\'instant.<br>Prenez des notes pendant votre intervention.</div>';
+        return;
+      }
+
+      list.innerHTML = notes.map(n => `
+        <div class="note-item">
+          <div class="note-item-type">${n.type === 'vocal' ? '🎙️ Note vocale' : '📝 Note écrite'}</div>
+          <div class="note-item-content">${n.content}</div>
+          <div class="note-item-time">${n.time}</div>
+          <button class="note-delete" onclick="deleteNote(${n.id})">✕</button>
+        </div>`).join('');
+    }
+
+    function useNotesInVocal() {
+      // Naviguer vers la page vocale avec les notes chargées
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-vocal').classList.add('active');
+      document.querySelectorAll('.nav-item')[1].classList.add('active');
+      document.getElementById('pageTitle').textContent = 'Saisie vocale';
+      document.getElementById('refreshBtn').style.display = 'none';
+      document.getElementById('lastUpdate').style.display = 'none';
+      loadNotesInVocal();
+    }
+
+    // ===== TECHNICIENS =====
+    async function loadTechniciens() {
+      const grid = document.getElementById('techGrid');
+      grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1;"><div class="spinner"></div><div class="loading-text">Chargement...</div></div>';
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens?key=${API_KEY}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).filter(r => r[0] && r[0] !== 'Trigramme');
+
+        const techStats = {};
+        allData.forEach(r => {
+          const t = r[COL.tech];
+          if (t) { if (!techStats[t]) techStats[t] = 0; techStats[t]++; }
+        });
+
+        const cards = rows.map(r => {
+          const trigram = r[0]||'';
+          const nom = r[1]||'';
+          const prenom = r[2]||'';
+          const fullName = `${prenom} ${nom}`.trim();
+          const initials = (prenom[0]||'') + (nom[0]||'');
+          const count = techStats[trigram] || 0;
+
+          return `
+            <div class="tech-card">
+              <div class="tech-avatar">${initials||'?'}</div>
+              <div class="tech-name">${fullName||'—'}</div>
+              <div class="tech-trigram">${trigram}</div>
+              <div class="tech-stats">
+                <div class="tech-stat">
+                  <div class="tech-stat-val" style="color:var(--accent);">${count}</div>
+                  <div class="tech-stat-lbl">Interventions</div>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+        grid.innerHTML = cards + `
+          <div class="tech-add-card" onclick="openAddTech()">
+            <div class="tech-add-icon">+</div>
+            <div class="tech-add-text">Ajouter un technicien</div>
+          </div>`;
+
+      } catch(e) {
+        grid.innerHTML = `<div class="error-state" style="grid-column:1/-1;">⚠️ Impossible de charger les techniciens.</div>
+          <div class="tech-add-card" onclick="openAddTech()" style="grid-column:1;">
+            <div class="tech-add-icon">+</div>
+            <div class="tech-add-text">Ajouter un technicien</div>
+          </div>`;
+      }
+    }
+
+    function openAddTech() {
+      document.getElementById('addTechModal').classList.add('open');
+    }
+
+    function closeAddTech() {
+      document.getElementById('addTechModal').classList.remove('open');
+      document.getElementById('techNom').value = '';
+      document.getElementById('techTrigram').value = '';
+      document.getElementById('techMdp').value = '';
+    }
+
+    async function saveTech() {
+      const nom = document.getElementById('techNom').value.trim();
+      const trigram = document.getElementById('techTrigram').value.trim().toUpperCase();
+      const mdp = document.getElementById('techMdp').value.trim();
+      if (!nom || !trigram) { alert('Prénom Nom et Trigramme obligatoires.'); return; }
+
+      const parts = nom.split(' ');
+      const prenom = parts[0] || '';
+      const nomFam = parts.slice(1).join(' ') || '';
+
+      // Ajouter dans Google Sheets via l'API Sheets (append)
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens:append?valueInputOption=RAW&key=${API_KEY}`;
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values: [[trigram, nomFam, prenom, mdp]] })
+        });
+      } catch(e) {}
+
+      closeAddTech();
+      loadTechniciens();
+    }
+
+    // ===== INIT =====
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeAddTech(); } });
+
+    loadData();
+    setInterval(loadData, 60000);
+    renderNotes();
+  </script>
+</body>
+</html>
