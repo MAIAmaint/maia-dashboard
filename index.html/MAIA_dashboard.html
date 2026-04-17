@@ -726,6 +726,10 @@
         <button class="btn-accent" style="width:100%; padding:16px; font-size:16px;" onclick="goToPin()">
           Continuer →
         </button>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer; font-size:13px; color:var(--text2); justify-content:center;">
+          <input type="checkbox" id="rememberMe" style="accent-color:var(--accent); width:16px; height:16px;">
+          Se souvenir de moi sur cet appareil
+        </label>
         <div class="auth-error" id="authError1"></div>
       </div>
 
@@ -1647,6 +1651,7 @@ Communiquez ces informations à ${prenom}.`);
     }
 
     async function goToPin() {
+      return new Promise(async (resolve, reject) => {
       const trigram = document.getElementById('authTrigram').value.trim().toUpperCase();
       if (trigram.length < 2) {
         document.getElementById('authError1').textContent = 'Trigramme invalide.';
@@ -1686,6 +1691,8 @@ Communiquez ces informations à ${prenom}.`);
       document.getElementById('authStep2').style.display = 'block';
       pinEntry = '';
       updatePinDisplay();
+      resolve();
+      }); // fin Promise
     }
 
     function backToTrigram() {
@@ -1729,7 +1736,9 @@ Communiquez ces informations à ${prenom}.`);
     function checkPin() {
       const storedPin = (techData[3] || '').toString().trim();
       if (pinEntry === storedPin) {
-        const isAdmin = window._isAdmin || false;
+        const storedPinLen = (techData[3] || '').toString().trim().length;
+        const isAdmin = storedPinLen === 8;
+        isResponsable = storedPinLen >= 6;
         const role = isAdmin ? 'admin' : isResponsable ? 'responsable' : 'technicien';
         const roleLabel = isAdmin ? '👑 Admin' : isResponsable ? '👔 Responsable' : '🔧 Technicien';
 
@@ -1744,6 +1753,16 @@ Communiquez ces informations à ${prenom}.`);
         };
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('exportBtn').style.display = isResponsable ? 'block' : 'none';
+
+        // Sauvegarder si "Se souvenir de moi" coché
+        const rememberMe = document.getElementById('rememberMe');
+        if (rememberMe && rememberMe.checked) {
+          localStorage.setItem('maia_trigram', techData[0]);
+          localStorage.setItem('maia_pin', pinEntry);
+        } else {
+          localStorage.removeItem('maia_trigram');
+          localStorage.removeItem('maia_pin');
+        }
 
         // Mettre à jour la sidebar avec le nom + rôle
         const footerEl = document.querySelector('.sidebar-footer');
@@ -1775,7 +1794,11 @@ Communiquez ces informations à ${prenom}.`);
       currentUser = null;
       pinEntry = '';
       techData = null;
+      // Effacer la mémoire locale à la déconnexion manuelle
+      localStorage.removeItem('maia_trigram');
+      localStorage.removeItem('maia_pin');
       document.getElementById('authTrigram').value = '';
+      document.getElementById('rememberMe').checked = false;
       document.getElementById('authError1').textContent = '';
       document.getElementById('authStep1').style.display = 'block';
       document.getElementById('authStep2').style.display = 'none';
@@ -1802,6 +1825,21 @@ Communiquez ces informations à ${prenom}.`);
     document.addEventListener('click', resetInactivityTimer);
     document.addEventListener('keydown', resetInactivityTimer);
     resetInactivityTimer();
+
+    // Pré-remplir si "Se souvenir de moi" activé
+    const savedTrigram = localStorage.getItem('maia_trigram');
+    const savedPin = localStorage.getItem('maia_pin');
+    if (savedTrigram) {
+      document.getElementById('authTrigram').value = savedTrigram;
+      document.getElementById('rememberMe').checked = true;
+      // Auto-connexion si PIN aussi sauvegardé
+      if (savedPin) {
+        goToPin().then(() => {
+          // Injecter le PIN automatiquement
+          savedPin.split('').forEach(d => pinPress(d));
+        }).catch(() => {});
+      }
+    }
     renderNotes();
   </script>
 </body>
