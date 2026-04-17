@@ -719,7 +719,7 @@
       <div id="authStep1">
         <div class="auth-step">Saisissez votre trigramme</div>
         <input type="text" class="auth-trigram-input" id="authTrigram"
-          maxlength="3" placeholder="MGT"
+          maxlength="3" placeholder="XXX"
           oninput="this.value=this.value.toUpperCase()"
           onkeydown="if(event.key==='Enter') goToPin()">
         <button class="btn-accent" style="width:100%; padding:16px; font-size:16px;" onclick="goToPin()">
@@ -795,6 +795,7 @@
       <div class="topbar-title" id="pageTitle">Tableau de bord</div>
       <div class="topbar-right">
         <span class="last-update" id="lastUpdate">—</span>
+        <button class="refresh-btn" id="exportBtn" onclick="exportCSV()" style="display:none;">⬇ Export CSV</button>
         <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻ Actualiser</button>
       </div>
     </div>
@@ -983,18 +984,20 @@
   <!-- MODAL AJOUT TECHNICIEN -->
   <div class="add-tech-modal" id="addTechModal">
     <div class="add-tech-box">
-      <div class="add-tech-title">👷 Ajouter un technicien</div>
+      <div class="add-tech-title">👷 Ajouter un membre</div>
       <div class="form-field">
         <label class="form-label">Prénom Nom *</label>
         <input type="text" class="form-input" id="techNom" placeholder="Jean Dupont">
       </div>
       <div class="form-field">
-        <label class="form-label">Trigramme *</label>
-        <input type="text" class="form-input" id="techTrigram" placeholder="JDU" maxlength="3" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+        <label class="form-label">Rôle *</label>
+        <select class="form-input" id="techRole">
+          <option value="technicien">🔧 Technicien (PIN 4 chiffres)</option>
+          <option value="responsable">👔 Responsable (PIN 6 chiffres)</option>
+        </select>
       </div>
-      <div class="form-field">
-        <label class="form-label">Mot de passe</label>
-        <input type="password" class="form-input" id="techMdp" placeholder="••••••">
+      <div style="background:var(--bg3); border-radius:8px; padding:12px; font-size:12px; color:var(--text2); margin-bottom:8px;">
+        💡 Le trigramme et le code PIN seront générés automatiquement.
       </div>
       <div class="form-actions">
         <button class="btn-accent" onclick="saveTech()">Ajouter</button>
@@ -1124,7 +1127,7 @@
           </div>
           <div class="cell-desc">${row[COL.desc]||'—'}</div>
           <div class="cell-tech">${row[COL.tech]||'—'}</div>
-          <div>${getBadge(row[COL.statut])}</div>
+          <div onclick="event.stopPropagation(); cycleStatut(${allData.indexOf(row)})">${getBadge(row[COL.statut])}</div>
         </div>`).join('');
     }
 
@@ -1310,6 +1313,56 @@
       }
     }
 
+    // ===== CHANGEMENT STATUT =====
+    const STATUTS = ['Terminé', 'A suivre', 'En attente'];
+
+    async function cycleStatut(idx) {
+      if (!currentUser) return;
+      const row = allData[idx]; if (!row) return;
+      const current = row[COL.statut] || 'En attente';
+      const nextIdx = (STATUTS.indexOf(current) + 1) % STATUTS.length;
+      const newStatut = STATUTS[nextIdx];
+
+      // Trouver la ligne dans le sheet (header + 1)
+      const rowNum = idx + 2;
+      const colLetter = String.fromCharCode(65 + COL.statut); // G
+      const range = `Feuille 1!${colLetter}${rowNum}`;
+
+      try {
+        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW&key=${API_KEY}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values: [[newStatut]] })
+        });
+        allData[idx][COL.statut] = newStatut;
+        applyFilters();
+        updateStats(allData);
+      } catch(e) { console.error('Erreur changement statut', e); }
+    }
+
+    // ===== EXPORT CSV =====
+    function exportCSV() {
+      if (!allData.length) return;
+      const headers = ['Date','Equipement','Type','Description Panne','Cause','Actions','Statut','Technicien','Durée','Référence Pièce'];
+      const rows = allData.map(r => [
+        r[COL.date]||'', r[COL.equip]||'', r[COL.type]||'',
+        r[COL.desc]||'', r[COL.cause]||'', r[COL.actions]||'',
+        r[COL.statut]||'', r[COL.tech]||'', r[COL.duree]||'', r[COL.ref]||''
+      ]);
+
+      const csv = [headers, ...rows].map(r =>
+        r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(';')
+      ).join('\n');
+
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MAIA_rapports_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     // ===== NOTES TERRAIN =====
     function addTextNote() {
       const text = document.getElementById('noteText').value.trim();
@@ -1466,6 +1519,18 @@
       }
     }
 
+    function generateTrigram(nom, prenom) {
+      if (!prenom || !nom) return '???';
+      const t = (prenom[0] + nom[0] + (nom[1] || '')).toUpperCase();
+      return t;
+    }
+
+    function generatePin(length) {
+      let pin = '';
+      for (let i = 0; i < length; i++) pin += Math.floor(Math.random() * 10);
+      return pin;
+    }
+
     function openAddTech() {
       document.getElementById('addTechModal').classList.add('open');
     }
@@ -1479,23 +1544,36 @@
 
     async function saveTech() {
       const nom = document.getElementById('techNom').value.trim();
-      const trigram = document.getElementById('techTrigram').value.trim().toUpperCase();
-      const mdp = document.getElementById('techMdp').value.trim();
-      if (!nom || !trigram) { alert('Prénom Nom et Trigramme obligatoires.'); return; }
+      const isResp = document.getElementById('techRole').value === 'responsable';
+      if (!nom) { alert('Prénom Nom obligatoire.'); return; }
 
       const parts = nom.split(' ');
       const prenom = parts[0] || '';
       const nomFam = parts.slice(1).join(' ') || '';
 
-      // Ajouter dans Google Sheets via l'API Sheets (append)
+      // Générer trigramme automatiquement
+      let trigram = generateTrigram(nomFam, prenom);
+
+      // Générer PIN automatiquement (4 chiffres technicien, 6 chiffres responsable)
+      const pin = generatePin(isResp ? 6 : 4);
+
+      // Ajouter dans Google Sheets
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens:append?valueInputOption=RAW&key=${API_KEY}`;
       try {
         await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values: [[trigram, nomFam, prenom, mdp]] })
+          body: JSON.stringify({ values: [[trigram, nomFam, prenom, pin, isResp ? 'responsable' : 'technicien']] })
         });
       } catch(e) {}
+
+      // Afficher les accès générés
+      alert(`✅ Technicien créé !
+
+Trigramme : ${trigram}
+Code PIN : ${pin}
+
+Communiquez ces informations à ${prenom}.`);
 
       closeAddTech();
       loadTechniciens();
@@ -1594,6 +1672,7 @@
           isResponsable: isResponsable
         };
         document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('exportBtn').style.display = isResponsable ? 'block' : 'none';
 
         // Mettre à jour la sidebar avec le nom + rôle
         const footerEl = document.querySelector('.sidebar-footer');
@@ -1637,6 +1716,21 @@
 
     // loadData lancé après authentification
     setInterval(() => { if(currentUser) loadData(); }, 60000);
+
+    // Déconnexion automatique après 8h d'inactivité
+    let inactivityTimer;
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        if (currentUser) {
+          logout();
+          alert('Session expirée après 8h d\'inactivité.');
+        }
+      }, 8 * 60 * 60 * 1000);
+    }
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('keydown', resetInactivityTimer);
+    resetInactivityTimer();
     renderNotes();
   </script>
 </body>
