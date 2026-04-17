@@ -593,9 +593,174 @@
       .notes-grid { grid-template-columns: 1fr; }
       .tech-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ===== AUTHENTIFICATION ===== */
+    .auth-screen {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .auth-box {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%; max-width: 380px;
+      text-align: center;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 40px rgba(0,212,255,0.08);
+    }
+
+    .auth-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 36px; font-weight: 800;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .auth-logo span { color: var(--accent); }
+
+    .auth-sub {
+      font-size: 12px; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 40px;
+    }
+
+    .auth-trigram-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 28px; font-weight: 800;
+      font-family: 'Syne', sans-serif;
+      color: var(--accent);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      outline: none;
+      margin-bottom: 24px;
+      transition: border-color 0.2s;
+    }
+    .auth-trigram-input:focus { border-color: var(--accent); }
+    .auth-trigram-input::placeholder { color: var(--text2); letter-spacing: 0.1em; font-size: 16px; font-weight: 400; }
+
+    .auth-pin-label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text2); text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: 16px;
+    }
+
+    .auth-pin-display {
+      display: flex; gap: 12px; justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .pin-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+    .pin-dot.filled-resp { background: var(--accent2); border-color: var(--accent2); }
+
+    .auth-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .key-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      font-size: 20px; font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .key-btn:hover { background: var(--bg4); border-color: var(--border2); }
+    .key-btn:active { transform: scale(0.95); }
+    .key-btn.delete { font-size: 16px; color: var(--text2); }
+    .key-btn.empty { background: transparent; border-color: transparent; cursor: default; }
+
+    .auth-error {
+      font-size: 13px; color: var(--red);
+      margin-bottom: 16px; min-height: 20px;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .auth-step {
+      font-size: 12px; color: var(--text2);
+      margin-bottom: 20px;
+    }
+
   </style>
 </head>
 <body>
+
+  <!-- ÉCRAN D'AUTHENTIFICATION -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-box">
+      <div class="auth-logo">MA<span>IA</span></div>
+      <div class="auth-sub">Maintenance Assistée par IA</div>
+
+      <!-- Étape 1 : Trigramme -->
+      <div id="authStep1">
+        <div class="auth-step">Saisissez votre trigramme</div>
+        <input type="text" class="auth-trigram-input" id="authTrigram"
+          maxlength="3" placeholder="MGT"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter') goToPin()">
+        <button class="btn-accent" style="width:100%; padding:16px; font-size:16px;" onclick="goToPin()">
+          Continuer →
+        </button>
+        <div class="auth-error" id="authError1"></div>
+      </div>
+
+      <!-- Étape 2 : PIN -->
+      <div id="authStep2" style="display:none;">
+        <div class="auth-step">Bonjour <strong id="authPrenom" style="color:var(--accent)"></strong> — saisissez votre code PIN</div>
+
+        <div class="auth-pin-display" id="pinDisplay">
+          <div class="pin-dot" id="dot0"></div>
+          <div class="pin-dot" id="dot1"></div>
+          <div class="pin-dot" id="dot2"></div>
+          <div class="pin-dot" id="dot3"></div>
+          <div class="pin-dot" id="dot4" style="display:none;"></div>
+          <div class="pin-dot" id="dot5" style="display:none;"></div>
+        </div>
+
+        <div class="auth-keypad">
+          <button class="key-btn" onclick="pinPress('1')">1</button>
+          <button class="key-btn" onclick="pinPress('2')">2</button>
+          <button class="key-btn" onclick="pinPress('3')">3</button>
+          <button class="key-btn" onclick="pinPress('4')">4</button>
+          <button class="key-btn" onclick="pinPress('5')">5</button>
+          <button class="key-btn" onclick="pinPress('6')">6</button>
+          <button class="key-btn" onclick="pinPress('7')">7</button>
+          <button class="key-btn" onclick="pinPress('8')">8</button>
+          <button class="key-btn" onclick="pinPress('9')">9</button>
+          <button class="key-btn empty"></button>
+          <button class="key-btn" onclick="pinPress('0')">0</button>
+          <button class="key-btn delete" onclick="pinDelete()">⌫</button>
+        </div>
+
+        <div class="auth-error" id="authError2"></div>
+        <button class="btn-outline" style="width:100%; padding:12px; font-size:13px;" onclick="backToTrigram()">← Changer de trigramme</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -735,8 +900,7 @@
             <div class="rapport-result-title">📋 Rapport structuré</div>
             <div class="rapport-box" id="rapportContent"></div>
             <div style="display:flex; gap:12px; margin-top:16px;">
-              <button class="btn-accent" onclick="submitReport()">Enregistrer dans le dashboard →</button>
-              <button class="btn-outline" onclick="resetVocal()">Nouvelle intervention</button>
+              <button class="btn-outline" onclick="submitReport()">Nouvelle intervention</button>
             </div>
           </div>
         </div>
@@ -1337,11 +1501,142 @@
       loadTechniciens();
     }
 
+
+    // ===== AUTHENTIFICATION =====
+    let currentUser = null;
+    let pinEntry = '';
+    let techData = null;
+    let isResponsable = false;
+
+    async function loadTechnicienAuth(trigram) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens?key=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const rows = (data.values || []).filter(r => r[0] && r[0] !== 'Trigramme');
+      return rows.find(r => r[0].toUpperCase() === trigram.toUpperCase()) || null;
+    }
+
+    async function goToPin() {
+      const trigram = document.getElementById('authTrigram').value.trim().toUpperCase();
+      if (trigram.length < 2) {
+        document.getElementById('authError1').textContent = 'Trigramme invalide.';
+        return;
+      }
+
+      const tech = await loadTechnicienAuth(trigram);
+      if (!tech) {
+        document.getElementById('authError1').textContent = 'Trigramme non reconnu.';
+        return;
+      }
+
+      techData = tech;
+      // Détecter si responsable (PIN 6 chiffres = colonne 3 avec 6 chiffres)
+      const pin = tech[3] || '';
+      isResponsable = pin.length === 6;
+
+      // Afficher les bons dots
+      for (let i = 0; i < 6; i++) {
+        const dot = document.getElementById('dot' + i);
+        if (i < pin.length) dot.style.display = 'flex';
+        else dot.style.display = 'none';
+      }
+
+      const prenom = tech[2] || tech[1] || trigram;
+      document.getElementById('authPrenom').textContent = prenom;
+      document.getElementById('authStep1').style.display = 'none';
+      document.getElementById('authStep2').style.display = 'block';
+      pinEntry = '';
+      updatePinDisplay();
+    }
+
+    function backToTrigram() {
+      document.getElementById('authStep1').style.display = 'block';
+      document.getElementById('authStep2').style.display = 'none';
+      document.getElementById('authError1').textContent = '';
+      document.getElementById('authError2').textContent = '';
+      pinEntry = '';
+    }
+
+    function pinPress(digit) {
+      const maxLen = isResponsable ? 6 : 4;
+      if (pinEntry.length >= maxLen) return;
+      pinEntry += digit;
+      updatePinDisplay();
+      if (pinEntry.length === maxLen) {
+        setTimeout(checkPin, 200);
+      }
+    }
+
+    function pinDelete() {
+      pinEntry = pinEntry.slice(0, -1);
+      updatePinDisplay();
+    }
+
+    function updatePinDisplay() {
+      const maxLen = isResponsable ? 6 : 4;
+      for (let i = 0; i < maxLen; i++) {
+        const dot = document.getElementById('dot' + i);
+        dot.classList.remove('filled', 'filled-resp');
+        if (i < pinEntry.length) {
+          dot.classList.add(isResponsable ? 'filled-resp' : 'filled');
+        }
+      }
+    }
+
+    function checkPin() {
+      const storedPin = (techData[3] || '').toString().trim();
+      if (pinEntry === storedPin) {
+        // Connexion réussie
+        currentUser = {
+          trigram: techData[0],
+          nom: techData[1] || '',
+          prenom: techData[2] || '',
+          isResponsable: isResponsable
+        };
+        document.getElementById('authScreen').style.display = 'none';
+
+        // Mettre à jour la sidebar avec le nom + rôle
+        const footerEl = document.querySelector('.sidebar-footer');
+        if (footerEl) {
+          footerEl.innerHTML = `
+            <span class="status-dot"></span> ${currentUser.prenom} ${currentUser.nom} (${currentUser.trigram})<br>
+            <span style="font-size:11px; color:var(--text2);">${isResponsable ? '👔 Responsable' : '🔧 Technicien'}</span>
+            <br><button onclick="logout()" style="margin-top:8px; background:none; border:none; color:var(--text2); font-size:11px; cursor:pointer; padding:0;">Déconnexion</button>
+          `;
+        }
+
+        // Masquer les éléments responsable si technicien
+        if (!isResponsable) {
+          document.querySelectorAll('.resp-only').forEach(el => el.style.display = 'none');
+        }
+
+        loadData();
+      } else {
+        document.getElementById('authError2').textContent = 'Code PIN incorrect.';
+        pinEntry = '';
+        updatePinDisplay();
+        setTimeout(() => {
+          document.getElementById('authError2').textContent = '';
+        }, 2000);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      pinEntry = '';
+      techData = null;
+      document.getElementById('authTrigram').value = '';
+      document.getElementById('authError1').textContent = '';
+      document.getElementById('authStep1').style.display = 'block';
+      document.getElementById('authStep2').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+    }
+
     // ===== INIT =====
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeAddTech(); } });
 
-    loadData();
-    setInterval(loadData, 60000);
+    // loadData lancé après authentification
+    setInterval(() => { if(currentUser) loadData(); }, 60000);
     renderNotes();
   </script>
 </body>
