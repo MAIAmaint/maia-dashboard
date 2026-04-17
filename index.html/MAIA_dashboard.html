@@ -663,6 +663,7 @@
     }
     .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
     .pin-dot.filled-resp { background: var(--accent2); border-color: var(--accent2); }
+    .pin-dot.filled-admin { background: #ffd700; border-color: #ffd700; }
 
     .auth-keypad {
       display: grid;
@@ -978,6 +979,13 @@
       </div>
       <div class="modal-meta" id="modalMeta"></div>
       <div id="modalBody"></div>
+      <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:center;">
+        <span style="font-size:12px; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em;">Statut :</span>
+        <span id="modalStatutBadge"></span>
+        <button class="refresh-btn" id="modalStatutBtn" onclick="cycleStatutModal()" style="margin-left:auto;">
+          🔄 Changer le statut
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1127,7 +1135,7 @@
           </div>
           <div class="cell-desc">${row[COL.desc]||'—'}</div>
           <div class="cell-tech">${row[COL.tech]||'—'}</div>
-          <div onclick="event.stopPropagation(); cycleStatut(${allData.indexOf(row)})">${getBadge(row[COL.statut])}</div>
+          <div>${getBadge(row[COL.statut])}</div>
         </div>`).join('');
     }
 
@@ -1142,8 +1150,10 @@
       return p.length === 3 ? new Date(p[2],p[1]-1,p[0]) : new Date(str);
     }
 
+    let currentModalIdx = null;
     function openModal(idx) {
       const row = allData[idx]; if (!row) return;
+      currentModalIdx = idx;
       document.getElementById('modalTitle').textContent = row[COL.equip]||'Intervention';
       document.getElementById('modalMeta').innerHTML = `
         <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">${row[COL.date]||'—'}</div></div>
@@ -1157,6 +1167,7 @@
         ${row[COL.cause]?`<div class="modal-section"><div class="modal-section-title">Cause identifiée</div><div class="modal-section-content">${row[COL.cause]}</div></div>`:''}
         ${row[COL.actions]?`<div class="modal-section"><div class="modal-section-title">Actions réalisées</div><div class="modal-section-content">${row[COL.actions]}</div></div>`:''}
         ${row[COL.rapport]?`<div class="modal-section"><div class="modal-section-title">Rapport complet</div><div class="rapport-box">${row[COL.rapport]}</div></div>`:''}`;
+      document.getElementById('modalStatutBadge').innerHTML = getBadge(row[COL.statut]);
       document.getElementById('modalOverlay').classList.add('open');
     }
 
@@ -1338,6 +1349,14 @@
         applyFilters();
         updateStats(allData);
       } catch(e) { console.error('Erreur changement statut', e); }
+    }
+
+    async function cycleStatutModal() {
+      if (currentModalIdx === null) return;
+      await cycleStatut(currentModalIdx);
+      // Mettre à jour le badge dans le modal
+      const row = allData[currentModalIdx];
+      document.getElementById('modalStatutBadge').innerHTML = getBadge(row[COL.statut]);
     }
 
     // ===== EXPORT CSV =====
@@ -1609,15 +1628,24 @@ Communiquez ces informations à ${prenom}.`);
 
       techData = tech;
       // Détecter si responsable (PIN 6 chiffres = colonne 3 avec 6 chiffres)
-      const pin = tech[3] || '';
-      isResponsable = pin.length === 6;
+      const pin = (tech[3] || '').toString().trim();
+      const pinLen = pin.length;
+      isResponsable = pinLen >= 6;
+      const isAdmin = pinLen === 8;
 
-      // Afficher les bons dots
-      for (let i = 0; i < 6; i++) {
-        const dot = document.getElementById('dot' + i);
-        if (i < pin.length) dot.style.display = 'flex';
-        else dot.style.display = 'none';
+      // Afficher les bons dots selon la longueur du PIN
+      const maxDots = pinLen <= 4 ? 4 : pinLen <= 6 ? 6 : 8;
+      // Recréer les dots dynamiquement
+      const pinDisplay = document.getElementById('pinDisplay');
+      pinDisplay.innerHTML = '';
+      for (let i = 0; i < maxDots; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'pin-dot';
+        dot.id = 'dot' + i;
+        pinDisplay.appendChild(dot);
       }
+      window._pinMaxLen = maxDots;
+      window._isAdmin = isAdmin;
 
       const prenom = tech[2] || tech[1] || trigram;
       document.getElementById('authPrenom').textContent = prenom;
@@ -1636,7 +1664,7 @@ Communiquez ces informations à ${prenom}.`);
     }
 
     function pinPress(digit) {
-      const maxLen = isResponsable ? 6 : 4;
+      const maxLen = window._pinMaxLen || (isResponsable ? 6 : 4);
       if (pinEntry.length >= maxLen) return;
       pinEntry += digit;
       updatePinDisplay();
@@ -1651,12 +1679,16 @@ Communiquez ces informations à ${prenom}.`);
     }
 
     function updatePinDisplay() {
-      const maxLen = isResponsable ? 6 : 4;
+      const maxLen = window._pinMaxLen || (isResponsable ? 6 : 4);
+      const isAdmin = window._isAdmin || false;
       for (let i = 0; i < maxLen; i++) {
         const dot = document.getElementById('dot' + i);
-        dot.classList.remove('filled', 'filled-resp');
+        if (!dot) continue;
+        dot.classList.remove('filled', 'filled-resp', 'filled-admin');
         if (i < pinEntry.length) {
-          dot.classList.add(isResponsable ? 'filled-resp' : 'filled');
+          if (isAdmin) dot.classList.add('filled-admin');
+          else if (isResponsable) dot.classList.add('filled-resp');
+          else dot.classList.add('filled');
         }
       }
     }
@@ -1664,12 +1696,18 @@ Communiquez ces informations à ${prenom}.`);
     function checkPin() {
       const storedPin = (techData[3] || '').toString().trim();
       if (pinEntry === storedPin) {
+        const isAdmin = window._isAdmin || false;
+        const role = isAdmin ? 'admin' : isResponsable ? 'responsable' : 'technicien';
+        const roleLabel = isAdmin ? '👑 Admin' : isResponsable ? '👔 Responsable' : '🔧 Technicien';
+
         // Connexion réussie
         currentUser = {
           trigram: techData[0],
           nom: techData[1] || '',
           prenom: techData[2] || '',
-          isResponsable: isResponsable
+          isResponsable: isResponsable,
+          isAdmin: isAdmin,
+          role: role
         };
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('exportBtn').style.display = isResponsable ? 'block' : 'none';
@@ -1679,12 +1717,12 @@ Communiquez ces informations à ${prenom}.`);
         if (footerEl) {
           footerEl.innerHTML = `
             <span class="status-dot"></span> ${currentUser.prenom} ${currentUser.nom} (${currentUser.trigram})<br>
-            <span style="font-size:11px; color:var(--text2);">${isResponsable ? '👔 Responsable' : '🔧 Technicien'}</span>
+            <span style="font-size:11px; color:var(--text2);">${roleLabel}</span>
             <br><button onclick="logout()" style="margin-top:8px; background:none; border:none; color:var(--text2); font-size:11px; cursor:pointer; padding:0;">Déconnexion</button>
           `;
         }
 
-        // Masquer les éléments responsable si technicien
+        // Masquer les éléments responsable/admin si technicien
         if (!isResponsable) {
           document.querySelectorAll('.resp-only').forEach(el => el.style.display = 'none');
         }
