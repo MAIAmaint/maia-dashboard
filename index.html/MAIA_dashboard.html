@@ -931,7 +931,7 @@
             <div style="text-align:center; padding:20px 0;">
               <button class="note-record-btn" id="noteRecordBtn" onclick="toggleNoteRecord()" style="margin:0 auto 12px;">🎙️</button>
               <div id="noteRecordStatus" style="font-size:13px; color:var(--text2);">Appuyez pour enregistrer</div>
-              <div class="transcript-box" id="noteTranscript" style="display:none; margin-top:12px; text-align:left;"></div>
+              <textarea class="note-textarea" id="noteTranscript" style="display:none; margin-top:12px; height:80px;" placeholder="Transcription..."></textarea>
               <button class="btn-outline" id="addNoteVocalBtn" style="display:none; margin-top:12px; width:100%;" onclick="addVocalNote()">+ Ajouter cette note</button>
             </div>
           </div>
@@ -1420,7 +1420,7 @@
     }
 
     function addVocalNote() {
-      const text = window._lastNoteTranscript;
+      const text = document.getElementById('noteTranscript') ? document.getElementById('noteTranscript').value : window._lastNoteTranscript;
       if (!text) return;
       notes.push({ id: Date.now(), type: 'vocal', content: text, time: new Date().toLocaleTimeString('fr-FR') });
       saveNotes();
@@ -1548,6 +1548,39 @@
       let pin = '';
       for (let i = 0; i < length; i++) pin += Math.floor(Math.random() * 10);
       return pin;
+    }
+
+    function togglePin(idx, realPin) {
+      const el = document.getElementById('pin-' + idx);
+      if (!el) return;
+      const masked = '•'.repeat(realPin.length);
+      el.textContent = el.textContent === masked ? realPin : masked;
+    }
+
+    async function resetPin(idx, trigram, pinLen) {
+      if (!confirm(`Réinitialiser le PIN de ${trigram} ?`)) return;
+      const newPin = generatePin(pinLen);
+
+      // Trouver la ligne dans le sheet
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens?key=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const rows = (data.values || []);
+      const rowIdx = rows.findIndex(r => r[0] === trigram);
+      if (rowIdx < 0) return;
+
+      const rowNum = rowIdx + 1;
+      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens!D${rowNum}?valueInputOption=RAW&key=${API_KEY}`;
+      await fetch(updateUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [[newPin]] })
+      });
+
+      alert(`✅ Nouveau PIN de ${trigram} : ${newPin}
+
+Communiquez ce code au technicien.`);
+      loadTechniciens();
     }
 
     function openAddTech() {
