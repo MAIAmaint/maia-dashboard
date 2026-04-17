@@ -1505,25 +1505,42 @@
           if (t) { if (!techStats[t]) techStats[t] = 0; techStats[t]++; }
         });
 
-        const cards = rows.map(r => {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.isAdmin === true);
+          const isResp = isAdmin || (currentUser && (currentUser.role === 'responsable' || currentUser.isResponsable === true));
+
+          const cards = rows.map((r, i) => {
           const trigram = r[0]||'';
           const nom = r[1]||'';
           const prenom = r[2]||'';
+          const pin = (r[3]||'').toString().trim();
           const fullName = `${prenom} ${nom}`.trim();
           const initials = (prenom[0]||'') + (nom[0]||'');
           const count = techStats[trigram] || 0;
+          const roleLabel = pin.length === 8 ? '👑 Admin' : pin.length === 6 ? '👔 Responsable' : '🔧 Technicien';
+          const pinMasked = '•'.repeat(pin.length);
+
+          const pinSection = (isAdmin || isResp) && pin ? `
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+              <div style="font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Code PIN</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="pin-${i}" style="font-family:'DM Mono',monospace; font-size:16px; font-weight:700; color:var(--accent); letter-spacing:0.2em;">${pinMasked}</span>
+                <button onclick="togglePin(${i}, '${pin}')" style="background:none; border:1px solid var(--border); border-radius:4px; color:var(--text2); font-size:11px; padding:2px 8px; cursor:pointer;">👁</button>
+                <button onclick="resetPin(${i}, '${trigram}', ${pin.length})" style="background:none; border:1px solid var(--border); border-radius:4px; color:var(--text2); font-size:11px; padding:2px 8px; cursor:pointer;">🔄</button>
+              </div>
+            </div>` : '';
 
           return `
             <div class="tech-card">
               <div class="tech-avatar">${initials||'?'}</div>
               <div class="tech-name">${fullName||'—'}</div>
-              <div class="tech-trigram">${trigram}</div>
+              <div class="tech-trigram">${trigram} <span style="font-size:10px; color:var(--text2);">${roleLabel}</span></div>
               <div class="tech-stats">
                 <div class="tech-stat">
                   <div class="tech-stat-val" style="color:var(--accent);">${count}</div>
                   <div class="tech-stat-lbl">Interventions</div>
                 </div>
               </div>
+              ${pinSection}
             </div>`;
         }).join('');
 
