@@ -1749,7 +1749,8 @@ Communiquez ces informations à ${prenom}.`);
           prenom: techData[2] || '',
           isResponsable: isResponsable,
           isAdmin: isAdmin,
-          role: role
+          role: role,
+          pinLength: storedPinLen
         };
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('exportBtn').style.display = isResponsable ? 'block' : 'none';
