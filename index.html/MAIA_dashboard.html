@@ -1025,6 +1025,7 @@
     const WEBHOOK_VOCAL = 'https://maia.app.n8n.cloud/webhook/Rapport maintenance';
     const GROQ_API_KEY = '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';
     const WEBHOOK_ECRIT = 'https://maia.app.n8n.cloud/webhook/Rapport-texte';
+    const WEBHOOK_PERSONNEL = 'https://maia.app.n8n.cloud/webhook/a94682c8-c1fa-4f1e-8856-d555e43c9118';
 
     const COL = {
       tech: 0, date: 1, equip: 2, ref: 3, duree: 4,
@@ -1630,15 +1631,27 @@ Communiquez ce code au technicien.`);
       // Générer PIN automatiquement (4 chiffres technicien, 6 chiffres responsable)
       const pin = generatePin(isResp ? 6 : 4);
 
-      // Ajouter dans Google Sheets
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Techniciens:append?valueInputOption=RAW&key=${API_KEY}`;
+      // Ajouter via webhook n8n (qui écrit dans Google Sheets)
       try {
-        await fetch(url, {
+        const res = await fetch(WEBHOOK_PERSONNEL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values: [[trigram, nomFam, prenom, pin, isResp ? 'responsable' : 'technicien']] })
+          body: JSON.stringify({
+            trigramme: trigram,
+            nom: nomFam,
+            prenom: prenom,
+            pin: pin,
+            role: isResp ? 'responsable' : 'technicien'
+          })
         });
-      } catch(e) {}
+        if (!res.ok) {
+          alert(`❌ Erreur lors de l'ajout (${res.status}). Vérifiez le workflow n8n.`);
+          return;
+        }
+      } catch(e) {
+        alert('❌ Impossible de joindre n8n. Vérifiez votre connexion.');
+        return;
+      }
 
       // Afficher les accès générés
       alert(`✅ Technicien créé !
