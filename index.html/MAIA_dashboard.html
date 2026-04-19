@@ -1097,7 +1097,10 @@
         const data = await res.json();
         if (data.error) { showError('Erreur API : ' + data.error.message); return; }
 
-        const rows = (data.values || []).filter(r => r[COL.equip] && r[COL.equip] !== 'Equipement');
+        const rawRows = data.values || [];
+        const rows = rawRows
+          .map((r, i) => { r._rowNum = i + 1; return r; }) // stocker numéro ligne réel (1-based)
+          .filter(r => r[COL.equip] && r[COL.equip] !== 'Equipement');
         allData = rows;
         updateStats(rows);
         updateTechFilter(rows);
@@ -1413,8 +1416,8 @@
       const row = allData[currentModalIdx];
       if (!row) return;
 
-      // Calculer le numéro de ligne dans le sheet (header en ligne 1, données à partir de ligne 2)
-      const rowNum = currentModalIdx + 2;
+      // Numéro de ligne réel dans le sheet (stocké au chargement)
+      const rowNum = row._rowNum || (currentModalIdx + 2);
 
       rapportComplementaireCtx = {
         idx: currentModalIdx,
@@ -1458,7 +1461,7 @@
       const current = row[COL.statut] || 'En attente';
       const nextIdx = (STATUTS.indexOf(current) + 1) % STATUTS.length;
       const newStatut = STATUTS[nextIdx];
-      const rowNum = idx + 2;
+      const rowNum = row._rowNum || (idx + 2);
 
       try {
         await fetch(WEBHOOK_MAJ, {
