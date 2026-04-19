@@ -1336,6 +1336,8 @@
           // Masquer la bannière
           document.getElementById('complBanner').style.display = 'none';
           rapportComplementaireCtx = null;
+          const genBtn2 = document.getElementById('generateBtn');
+          if (genBtn2) genBtn2.textContent = 'Générer le rapport IA →';
 
         } catch(e) {
           btn.disabled = false;
@@ -1432,12 +1434,17 @@
       document.getElementById('pageTitle').textContent = 'Saisie vocale';
       document.getElementById('refreshBtn').style.display = 'none';
       document.getElementById('lastUpdate').style.display = 'none';
+      // Changer le texte du bouton pour indiquer le mode complémentaire
+      const genBtn = document.getElementById('generateBtn');
+      if (genBtn) genBtn.textContent = '➕ Ajouter ce rapport complémentaire →';
       loadNotesInVocal();
     }
 
     function cancelRapportComplementaire() {
       rapportComplementaireCtx = null;
       document.getElementById('complBanner').style.display = 'none';
+      const genBtn = document.getElementById('generateBtn');
+      if (genBtn) genBtn.textContent = 'Générer le rapport IA →';
     }
 
     // ===== CHANGEMENT STATUT =====
