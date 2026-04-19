@@ -1302,20 +1302,8 @@
       // MODE RAPPORT COMPLÉMENTAIRE
       if (rapportComplementaireCtx) {
         try {
-          // 1. Générer le nouveau rapport via n8n
-          const res = await fetch(WEBHOOK_ECRIT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texte: text, mode: 'structuration_seule' })
-          });
-
-          let nouveauRapport = '';
-          if (res.ok) {
-            const data = await res.json();
-            nouveauRapport = data.rapport || data.text || text;
-          } else {
-            nouveauRapport = text;
-          }
+          // 1. Utiliser le texte directement (pas besoin de retraitement IA)
+          const nouveauRapport = text;
 
           // 2. Concaténer avec l'ancien rapport
           const dateStr = new Date().toLocaleDateString('fr-FR');
